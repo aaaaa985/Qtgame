@@ -23,9 +23,3 @@ MainWindow::~MainWindow()
 
 
 
-
-
-
-
-
-

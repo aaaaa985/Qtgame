@@ -7,10 +7,41 @@
 #include <QList>
 #include <QPoint>
 #include <QPixmap>
+#include <QPainter>
+
+class Lifebar{
+public:
+    Lifebar(int x,int y,int width,int height,int maxHealth)
+        :x(x),y(y),width(width),height(height),maxHealth(maxHealth){}
+
+    void draw(QPainter& painter,int currentHealth){
+        qDebug()<<"Lifebar draw:x="<<x<<",y="<<y;
+        painter.setBrush(Qt::gray);
+        painter.drawRect(x,y,width,height);
+        int currentWidth=static_cast<int>(static_cast<float>(currentHealth)/maxHealth*width);
+        painter.setBrush(Qt::red);
+        painter.drawRect(x,y,currentWidth,height);
+
+    }
+
+    int getX()const{return x;}
+    int getY()const{return y;}
+    int getWidth()const{return width;}
+    int getHeight()const{return height;}
+
+private:
+    int x;
+    int y;
+    int width;
+    int height;
+    int maxHealth;
+
+};
 
 class Character{
 public:
-    Character(){
+    Character():lifebar(10,10,80,8,15)
+    {
         position.setX(60);
         position.setY(520);
         normalSpeed=6;
@@ -57,6 +88,7 @@ public:
     QPixmap plusIcon;
     bool canUseBoost;
     int boostCooldown;
+    Lifebar lifebar;
 
     QRectF getRect() const{
         return QRectF(position.x(),position.y(),image.width(),image.height());
@@ -176,7 +208,7 @@ public:
             }
             else{
                 isHit=false;
-                qDebug()<<"Hit effect started!";
+                qDebug()<<"Hit effect ended!";
             }
         }
     }
@@ -324,6 +356,7 @@ class GameWidget : public QWidget
 public:
     explicit GameWidget(QWidget *parent = nullptr);
     ~GameWidget();
+    void resetGame();
 protected:
     void paintEvent(QPaintEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
@@ -331,6 +364,8 @@ protected:
     void focusInEvent(QFocusEvent *event) override;
 private slots:
     void updateGame();
+signals:
+    void gameEnded(bool isWin);
 private:
     QTimer *timer;
     Character character;
@@ -342,7 +377,6 @@ private:
     QPixmap backgroundImage;
     bool shiftPressed=false;
 
-
     bool isCollision(const Character &character,const Target &target);
     bool isCollisionWithObstacle(const Character &character,const Obstacle &obstacle);
     bool isCollisionWithHealingPoint(const Character &character,const HealingPoint &healingPoint);
@@ -351,15 +385,7 @@ private:
     bool isOverlapping(const QRectF& rect,const QList<Target>& targets,const QList<Obstacle>& obstacles,const Character& character,const QList<HealingPoint>& healingPoints,const QList<Portal*>& portals);
 };
 
-
-
-
 #endif // GAMEWIDGET_H
-
-
-
-
-
 
 
 

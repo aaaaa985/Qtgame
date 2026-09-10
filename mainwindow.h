@@ -22,14 +22,9 @@ private:
     Ui::MainWindow *ui;
     GameWidget *gameWidget;
 };
+
+
 #endif // MAINWINDOW_H
-
-
-
-
-
-
-
 
 
 

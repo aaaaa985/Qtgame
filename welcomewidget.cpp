@@ -1,8 +1,7 @@
-#include "welcomewiget.h"
-#include <QVBoxLayout>
+#include "welcomewidget.h"
 
 WelcomeWidget::WelcomeWidget(QWidget *parent):QWidget(parent){
-    startGameButton=new QPushButton("进入游戏",this);
+    startGameButton=new QPushButton("Start",this);
     if(startGameButton){
         qDebug()<<"Button pointer is valid";
     }
@@ -21,12 +20,12 @@ WelcomeWidget::WelcomeWidget(QWidget *parent):QWidget(parent){
 
     QHBoxLayout *horizontalLayout=new QHBoxLayout();
 
-    QSpacerItem *horizontalSpacerLeft=new QSpacerItem(200,20,QSizePolicy::Expanding,QSizePolicy::Minimum);
+    QSpacerItem *horizontalSpacerLeft=new QSpacerItem(150,20,QSizePolicy::Expanding,QSizePolicy::Minimum);
     horizontalLayout->addItem(horizontalSpacerLeft);
 
     horizontalLayout->addWidget(startGameButton);
 
-   QSpacerItem *horizontalSpacerRight=new QSpacerItem(200,20,QSizePolicy::Expanding,QSizePolicy::Minimum);
+   QSpacerItem *horizontalSpacerRight=new QSpacerItem(150,20,QSizePolicy::Expanding,QSizePolicy::Minimum);
     horizontalLayout->addItem(horizontalSpacerRight);
 
     verticalLayout->addLayout(horizontalLayout);
@@ -34,7 +33,7 @@ WelcomeWidget::WelcomeWidget(QWidget *parent):QWidget(parent){
     QSpacerItem *verticalSpacerBottom=new QSpacerItem(20,30,QSizePolicy::Minimum,QSizePolicy::Expanding);
     verticalLayout->addItem(verticalSpacerBottom);
 
-    QFont buttonFont("Arial",30);
+    QFont buttonFont("Arial",40);
     buttonFont.setBold(true);
     startGameButton->setFont(buttonFont);
     startGameButton->update();
@@ -59,10 +58,12 @@ WelcomeWidget::WelcomeWidget(QWidget *parent):QWidget(parent){
         "}"
     );
 
-    backgroundImage=QPixmap(":/images/background'.png");
+    wbackgroundImage=QPixmap(":/images/wel_background.png");
+    if(wbackgroundImage.isNull()){
+        qDebug()<<"Failed to load wbackground image!";
+    }
 
-
-    setFixedSize(600,800);
+    setFixedSize(500,800);
 
     connect(startGameButton,&QPushButton::clicked,this,&WelcomeWidget::onStartGameButtonClicked);
 }
@@ -74,7 +75,7 @@ WelcomeWidget::~WelcomeWidget(){
 void WelcomeWidget::paintEvent(QPaintEvent *event){
     Q_UNUSED(event);
     QPainter painter(this);
-    painter.drawPixmap(rect(),backgroundImage.scaled(size(),Qt::IgnoreAspectRatio,Qt::SmoothTransformation));
+    painter.drawPixmap(rect(),wbackgroundImage.scaled(size(),Qt::IgnoreAspectRatio,Qt::SmoothTransformation));
 }
 
 void WelcomeWidget::onStartGameButtonClicked(){

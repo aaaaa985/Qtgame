@@ -12,12 +12,14 @@ SOURCES += \
     gamewidget.cpp \
     main.cpp \
     mainwindow.cpp \
+    resultwidget.cpp \
     welcomewidget.cpp
 
 HEADERS += \
     gamewidget.h \
     mainwindow.h \
-    welcomewiget.h
+    resultwidget.h \
+    welcomewidget.h
 
 FORMS += \
     mainwindow.ui

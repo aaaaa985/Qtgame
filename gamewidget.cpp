@@ -1,18 +1,17 @@
 #include "gamewidget.h"
 #include <QPainter>
+#include <QDebug>
 
 GameWidget::GameWidget(QWidget *parent)
     : QWidget{parent}
 {
     setFixedSize(1000,600);
 
-
     //加载背景图片
     backgroundImage=QPixmap(":/images/background.png");
     if(backgroundImage.isNull()){
         qDebug()<<"Failed to load background image";
     }
-
 
 
     timer=new QTimer(this);
@@ -70,7 +69,7 @@ GameWidget::GameWidget(QWidget *parent)
         }
     }
 
-    //初始化穿梭门
+    //初始化传送门
     qDeleteAll(portals);//先释放对象
     portals.clear();//再清空指针列表
     int maxRetries=1000;
@@ -120,17 +119,111 @@ GameWidget::~GameWidget(){
     portals.clear();
 }
 
+void GameWidget::resetGame(){
+    character=Character();
+    targets.clear();
+    obstacles.clear();
+    healingPoints.clear();
+    qDeleteAll(portals);
+    portals.clear();
+
+    for(int i=0;i<6;i++){
+        Target target;
+        int retryCount=0;
+        do{
+            target.position.setX(rand()%700+100);
+            target.position.setY(rand()%400+20);
+        }while(isOverlapping(target.getRect(),targets,obstacles,character,healingPoints,portals)&&++retryCount<500);
+        if(retryCount<500){
+            targets.append(target);
+        }
+        else{
+            qDebug()<<"Target"<<i<<"placement failed!";
+        }
+    }
+
+    for(int i=0;i<8;i++){
+        Obstacle obstacle;
+        int retryCount=0;
+        do{
+            obstacle.position.setX(rand()%700+100);
+            obstacle.position.setY(rand()%400+20);
+        }while(isOverlapping(obstacle.getRect(),targets,obstacles,character,healingPoints,portals)&&++retryCount<500);
+        if(retryCount<500){
+            obstacles.append(obstacle);
+        }
+        else{
+            qDebug()<<"Obstacle"<<i<<"placement failed!";
+        }
+    }
+
+    for(int i=0;i<5;i++){
+        HealingPoint healingPoint;
+        int retryCount=0;
+        do{
+            healingPoint.position.setX(rand()%700+100);
+            healingPoint.position.setY(rand()%400+20);
+        }while (isOverlapping(healingPoint.getRect(),targets,obstacles,character,healingPoints,portals)&&++retryCount<500);
+        if(retryCount<500){
+            healingPoints.append(healingPoint);
+        }
+        else{
+            qDebug()<<"HealingPoint"<<i<<"placement failed!";
+        }
+    }
+
+    qDeleteAll(portals);//先释放对象
+    portals.clear();//再清空指针列表
+    int maxRetries=1000;
+
+    for(int i=0;i<4;i++){
+        Portal* portal=new Portal();
+        int retryCount=0;
+        bool validPosition=false;
+
+        do{
+            portal->position.setX(rand()%700+100);
+            portal->position.setY(rand()%400+20);
+            validPosition=!isOverlapping(portal->getRect(),targets,obstacles,character,healingPoints,portals);
+            retryCount++;
+        }while(!validPosition&&retryCount<maxRetries);
+        if(validPosition){
+            portals.append(portal);
+        }
+        else{
+            qDebug()<<"Portal"<<i<<"placement failed after"<<retryCount<<"attemps";
+            delete portal;
+        }
+    }
+    if(portals.size()>=4){
+        portals.at(0)->pairedPortal=portals.at(1);
+        portals.at(1)->pairedPortal=portals.at(0);
+        portals.at(2)->pairedPortal=portals.at(3);
+        portals.at(3)->pairedPortal=portals.at(2);
+    }
+    else{
+        qDebug()<<"Warning:Not enough portals for pairing!";
+    }
+
+    gameOver=false;
+
+    if(timer->isActive()){
+        timer->stop();
+    }
+    timer->start(16);
+
+    update();
+}
+
 void GameWidget::paintEvent(QPaintEvent *event){
     Q_UNUSED(event);
     QPainter painter(this);
-
 
     //绘制背景图片
     if(!backgroundImage.isNull()) {
         QPixmap scaledImage = backgroundImage.scaled(rect().size(), Qt::KeepAspectRatioByExpanding);
         painter.drawPixmap(rect(), scaledImage);
     }
-
 
     //绘制人物
     if(!character.image.isNull()){
@@ -153,8 +246,15 @@ void GameWidget::paintEvent(QPaintEvent *event){
             }
         }
 
-
+        //绘制血条
+        if(character.health>0){
+            painter.save();
+            qDebug()<<"Drawing lifebar at("<<character.lifebar.getX()<<","<<character.lifebar.getY()<<")with width"<<character.lifebar.getWidth()<<"and height"<<character.lifebar.getHeight();
+            character.lifebar.draw(painter,character.health);
+            painter.restore();
+        }
     }
+
     //绘制目标
     for(const auto &target:targets){
         if(!target.image.isNull()){
@@ -182,27 +282,10 @@ void GameWidget::paintEvent(QPaintEvent *event){
         }
     }
 
-    //绘制穿梭门
+    //绘制传送门
     for(const auto &portal:portals){
         if(portal&&!portal->image.isNull()){
             painter.drawPixmap(portal->position.x(),portal->position.y(),portal->image);
-        }
-    }
-
-
-
-
-    //绘制游戏结束信息
-    if(gameOver){
-        painter.setFont(QFont("Impact",100));
-        painter.setPen(QColor(0,0,0,128));//半透明黑色
-        painter.drawText(rect().translated(5,5),Qt::AlignCenter,character.health<=0?"Lose":"Pass");
-        painter.setPen(Qt::red);
-        if(character.health<=0){
-            painter.drawText(rect(),Qt::AlignCenter,"Lose");
-        }
-        else{
-            painter.drawText(rect(),Qt::AlignCenter,"Pass");
         }
     }
 }
@@ -250,8 +333,6 @@ void GameWidget::keyPressEvent(QKeyEvent *event){
         break;
     }
 
-
-
     Character tempCharacter=character;
     tempCharacter.position=newPosition;
     QRectF newRect=tempCharacter.getRect();
@@ -272,7 +353,7 @@ void GameWidget::keyPressEvent(QKeyEvent *event){
 
     for(auto it=healingPoints.begin();it!=healingPoints.end();){
         if(isCollisionWithHealingPoint(tempCharacter,*it)){
-            if(character.health<10){
+            if(character.health<15){
                 character.health++;
                 character.startHealEffect();
             }
@@ -297,6 +378,7 @@ void GameWidget::keyPressEvent(QKeyEvent *event){
     }
 
     if(character.health<=0){
+        emit gameEnded(false);
         gameOver=true;
     }
 
@@ -382,10 +464,12 @@ void GameWidget::updateGame(){
     }
 
     if(targets.empty()){
+        emit gameEnded(true);
         gameOver=true;
     }
 
     if(character.health<=0){
+        emit gameEnded(false);
         gameOver=true;
     }
 
@@ -421,7 +505,11 @@ bool GameWidget::isCollisionWithHealingPoint(const Character &character,const He
 bool GameWidget::isCollisionWithPortal(const Character &character,const Portal &portal){
     QRectF charRect(character.position.x(),character.position.y(),25,50);
     QRectF portalRect(portal.position.x(),portal.position.y(),portal.image.width(),portal.image.height());
-    return charRect.intersects(portalRect);
+    bool collision=charRect.intersects(portalRect);
+    if(collision){
+        qDebug()<<"Collision with portal detected!";
+    }
+    return collision;
 }
 
 void GameWidget::handleAttack(){

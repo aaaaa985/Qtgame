@@ -1,0 +1,20 @@
+# Qt Creator user-specific files
+*.pro.user
+*.pro.user.*
+
+# Qt build directories
+build/
+build-*/
+
+# Compiled binaries and objects
+*.exe
+*.o
+*.obj
+*.dll
+*.so
+*.a
+
+# Qt generated files
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
